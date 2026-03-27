@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PDF Web Slides</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app" class="app">
+    <header class="topbar" id="topbar">
+      <div class="brand">
+        <span class="brand-mark">PDF</span>
+        <div>
+          <h1>Web Slides</h1>
+          <p>Browser-only presenter view for PDFs</p>
+        </div>
+      </div>
+      <div class="topbar-actions" id="presenter-toolbar">
+        <label class="file-picker">
+          <input id="pdf-input" type="file" accept="application/pdf">
+          <span>Select PDF</span>
+        </label>
+        <button id="open-audience-btn" type="button">Open Audience Window</button>
+        <button id="overview-btn" type="button">Overview</button>
+        <button id="blackout-btn" type="button">Blackout</button>
+        <button id="freeze-btn" type="button">Freeze</button>
+        <button id="pointer-btn" type="button">Pointer</button>
+      </div>
+    </header>
+
+    <main id="main-view" class="main-view">
+      <section id="loading-overlay" class="loading-overlay hidden" aria-live="polite">
+        <div class="loading-card">
+          <p id="loading-label" class="loading-label">Loading PDF...</p>
+          <div class="loading-bar">
+            <div id="loading-bar-fill" class="loading-bar-fill"></div>
+          </div>
+          <p id="loading-detail" class="loading-detail">Preparing renderer</p>
+        </div>
+      </section>
+
+      <section id="empty-state" class="empty-state">
+        <div class="empty-card">
+          <p class="eyebrow">Client-side PDF presenter</p>
+          <h2>Select a PDF and start presenting</h2>
+          <p>
+            The PDF is rendered locally in your browser. Keyboard shortcuts match the original tool closely.
+          </p>
+          <label class="file-picker hero-picker">
+            <input id="pdf-input-hero" type="file" accept="application/pdf">
+            <span>Choose PDF</span>
+          </label>
+          <div class="shortcut-list">
+            <span><kbd>←</kbd>/<kbd>→</kbd> navigate</span>
+            <span><kbd>g</kbd> go to slide</span>
+            <span><kbd>Tab</kbd> overview</span>
+            <span><kbd>b</kbd> blackout</span>
+            <span><kbd>f</kbd> freeze</span>
+            <span><kbd>p</kbd> pointer</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="presenter-view" class="presenter-view hidden">
+        <div class="stage-panel">
+          <div id="current-stage" class="slide-stage current-stage">
+            <img id="current-slide" alt="Current slide">
+            <div id="current-video-layer" class="video-layer"></div>
+            <div id="pointer-dot" class="pointer-dot hidden"></div>
+          </div>
+        </div>
+
+        <aside class="sidebar">
+          <div class="meta-bar">
+            <div id="timer" class="timer" title="Click to set duration. Right click to switch format.">00:00:00</div>
+            <div id="page-indicator" class="page-indicator">0/0</div>
+          </div>
+
+          <div id="next-stage" class="slide-stage next-stage">
+            <img id="next-slide" alt="Next slide">
+            <div id="next-video-layer" class="video-layer"></div>
+          </div>
+
+          <section class="notes-panel">
+            <div class="notes-header">
+              <span>Notes</span>
+              <span id="status-text" class="status-text">No PDF loaded</span>
+            </div>
+            <pre id="notes" class="notes"></pre>
+          </section>
+        </aside>
+      </section>
+
+      <section id="overview-view" class="overview-view hidden">
+        <div class="overview-header">
+          <h2>Overview</h2>
+          <button id="close-overview-btn" type="button">Back to Presenter</button>
+        </div>
+        <div id="overview-grid" class="overview-grid"></div>
+      </section>
+
+      <section id="audience-view" class="audience-view hidden">
+        <div id="audience-stage" class="slide-stage audience-stage">
+          <img id="audience-slide" alt="Audience slide">
+          <div id="audience-video-layer" class="video-layer"></div>
+          <div id="audience-pointer-dot" class="pointer-dot hidden"></div>
+          <div id="blackout-overlay" class="blackout-overlay hidden"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
