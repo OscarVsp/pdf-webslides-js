@@ -14,6 +14,7 @@ const VIEWER_CHANNEL_PREFIX = "pdf-webslides:";
 const VIDEO_EXTENSIONS = [".mp4", ".webm", ".ogg", ".mov", ".m4v"];
 const RENDER_WIDTH = 1920;
 const RENDER_HEIGHT = 1080;
+const SLIDE_CACHE_VERSION = 1;
 const NOTE_ANNOTATION_SUBTYPES = new Set([
   "Text",
   "FreeText",
@@ -212,6 +213,21 @@ async function restoreSessionFromUrl() {
     return;
   }
 
+  await loadSession(session, sessionId);
+}
+
+async function loadSession(session, sessionId) {
+  if (hasRenderedSlideCache(session)) {
+    showLoading("Loading cached slides...", "Restoring rendered slides", 95);
+    state.sessionId = sessionId;
+    setupChannel();
+    applyLoadedSlides(session.slides, session.name);
+    setLoadingProgress("Finalizing...", "Preparing cached view", 100);
+    window.setTimeout(hideLoading, 120);
+    broadcastState("loaded");
+    return;
+  }
+
   await loadPdfFromBytes(session.bytes, sessionId, session.name);
 }
 
@@ -246,6 +262,24 @@ async function loadPdfFromBytes(arrayBuffer, sessionId, name) {
     return;
   }
 
+  showLoading("Saving shared cache...", "Persisting rendered slides", 97);
+  await saveSessionRenderedSlides(sessionId, slides);
+  applyLoadedSlides(slides, name);
+  setLoadingProgress("Finalizing...", "Preparing presenter view", 100);
+  window.setTimeout(hideLoading, 120);
+  broadcastState("loaded");
+}
+
+function hasRenderedSlideCache(session) {
+  return Boolean(
+    session &&
+    session.slideCacheVersion === SLIDE_CACHE_VERSION &&
+    Array.isArray(session.slides) &&
+    session.slides.length
+  );
+}
+
+function applyLoadedSlides(slides, name) {
   state.slides = slides;
   state.slide = state.audience
     ? Math.max(0, Math.min(state.slide, slides.length - 1))
@@ -260,9 +294,6 @@ async function loadPdfFromBytes(arrayBuffer, sessionId, name) {
   renderOverview();
   render();
   setStatus(`Loaded ${slides.length} slides from ${name}`);
-  setLoadingProgress("Finalizing...", "Preparing presenter view", 100);
-  window.setTimeout(hideLoading, 120);
-  broadcastState("loaded");
 }
 
 async function renderSlide(page) {
@@ -1044,6 +1075,29 @@ async function saveSessionPdf(id, bytes, name) {
       id,
       name,
       bytes,
+      slides: null,
+      slideCacheVersion: 0,
+      updatedAt: Date.now(),
+    });
+  });
+  db.close();
+}
+
+async function saveSessionRenderedSlides(id, slides) {
+  const existing = await loadSessionPdf(id);
+  if (!existing) {
+    return;
+  }
+
+  const db = await openDatabase();
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    tx.onerror = () => reject(tx.error);
+    tx.oncomplete = () => resolve();
+    tx.objectStore(STORE_NAME).put({
+      ...existing,
+      slides,
+      slideCacheVersion: SLIDE_CACHE_VERSION,
       updatedAt: Date.now(),
     });
   });
