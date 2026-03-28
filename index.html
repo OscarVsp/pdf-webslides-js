@@ -21,11 +21,13 @@
           <input id="pdf-input" type="file" accept="application/pdf">
           <span>Select PDF</span>
         </label>
-        <button id="open-audience-btn" type="button">Open Audience Window</button>
-        <button id="overview-btn" type="button">Overview</button>
-        <button id="blackout-btn" type="button">Blackout</button>
-        <button id="freeze-btn" type="button">Freeze</button>
-        <button id="pointer-btn" type="button">Pointer</button>
+        <div id="presenter-actions" class="topbar-actions hidden">
+          <button id="open-audience-btn" type="button">Open Audience Window</button>
+          <button id="overview-btn" type="button">Overview</button>
+          <button id="blackout-btn" type="button">Blackout</button>
+          <button id="freeze-btn" type="button">Freeze</button>
+          <button id="pointer-btn" type="button">Pointer</button>
+        </div>
       </div>
     </header>
 
@@ -70,6 +72,15 @@
             <div id="pointer-dot" class="pointer-dot hidden"></div>
           </div>
         </div>
+
+        <div
+          id="presenter-splitter"
+          class="presenter-splitter"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize presenter panes"
+          tabindex="0"
+        ></div>
 
         <aside class="sidebar">
           <div class="meta-bar">

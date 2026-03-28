@@ -41,17 +41,20 @@ const state = {
   duration: 0,
   startTime: 0,
   noteFontSize: 125,
+  presenterSidebarWidth: 360,
   sessionId: null,
   channel: null,
   audienceWindow: null,
   renderToken: 0,
   syncing: false,
+  resizingSplit: false,
 };
 
 const els = {
   body: document.body,
   topbar: document.getElementById("topbar"),
   presenterToolbar: document.getElementById("presenter-toolbar"),
+  presenterActions: document.getElementById("presenter-actions"),
   emptyState: document.getElementById("empty-state"),
   presenterView: document.getElementById("presenter-view"),
   overviewView: document.getElementById("overview-view"),
@@ -63,6 +66,7 @@ const els = {
   nextVideoLayer: document.getElementById("next-video-layer"),
   audienceSlide: document.getElementById("audience-slide"),
   audienceVideoLayer: document.getElementById("audience-video-layer"),
+  presenterSplitter: document.getElementById("presenter-splitter"),
   notes: document.getElementById("notes"),
   timer: document.getElementById("timer"),
   pageIndicator: document.getElementById("page-indicator"),
@@ -109,6 +113,8 @@ function bindEvents() {
   els.blackoutBtn.addEventListener("click", () => toggleBlackout());
   els.freezeBtn.addEventListener("click", () => toggleFreeze());
   els.pointerBtn.addEventListener("click", () => togglePointer());
+  els.presenterSplitter.addEventListener("pointerdown", startPresenterResize);
+  els.presenterSplitter.addEventListener("keydown", onPresenterSplitterKeyDown);
 
   els.timer.addEventListener("click", setTimerDuration);
   els.timer.addEventListener("contextmenu", (event) => {
@@ -154,12 +160,19 @@ function bindEvents() {
 }
 
 function applyModeLayout() {
+  const hasSlides = !!state.slides.length;
   els.body.classList.toggle("audience-mode", state.audience);
+  els.body.classList.toggle("resizing-split", state.resizingSplit);
   els.topbar.classList.toggle("hidden", state.audience);
-  els.emptyState.classList.toggle("hidden", state.audience);
-  els.presenterView.classList.toggle("hidden", state.audience || !state.slides.length || state.overview);
+  els.presenterActions.classList.toggle("hidden", state.audience || !hasSlides);
+  els.emptyState.classList.toggle("hidden", state.audience || hasSlides);
+  els.presenterView.classList.toggle("hidden", state.audience || !hasSlides || state.overview);
   els.overviewView.classList.toggle("hidden", state.audience || !state.overview);
   els.audienceView.classList.toggle("hidden", !state.audience);
+  els.presenterView.style.setProperty(
+    "--sidebar-width",
+    `${clamp(state.presenterSidebarWidth, 280, 720)}px`
+  );
 }
 
 async function onFilePicked(event) {
@@ -711,6 +724,63 @@ function positionPointer(stage, dot, pos) {
   dot.style.top = `${pos.y * rect.height}px`;
 }
 
+function startPresenterResize(event) {
+  if (state.audience || window.innerWidth <= 980) {
+    return;
+  }
+
+  event.preventDefault();
+  state.resizingSplit = true;
+  applyModeLayout();
+  els.presenterSplitter.setPointerCapture(event.pointerId);
+  window.addEventListener("pointermove", onPresenterResizeMove);
+  window.addEventListener("pointerup", stopPresenterResize);
+  window.addEventListener("pointercancel", stopPresenterResize);
+}
+
+function onPresenterResizeMove(event) {
+  if (!state.resizingSplit) {
+    return;
+  }
+
+  const bounds = els.presenterView.getBoundingClientRect();
+  const minSidebar = 280;
+  const maxSidebar = Math.max(minSidebar, Math.min(720, bounds.width - 320));
+  const nextWidth = clamp(bounds.right - event.clientX, minSidebar, maxSidebar);
+  state.presenterSidebarWidth = Math.round(nextWidth);
+  applyModeLayout();
+}
+
+function stopPresenterResize(event) {
+  if (!state.resizingSplit) {
+    return;
+  }
+
+  state.resizingSplit = false;
+  applyModeLayout();
+  if (event?.pointerId !== undefined && els.presenterSplitter.hasPointerCapture(event.pointerId)) {
+    els.presenterSplitter.releasePointerCapture(event.pointerId);
+  }
+  window.removeEventListener("pointermove", onPresenterResizeMove);
+  window.removeEventListener("pointerup", stopPresenterResize);
+  window.removeEventListener("pointercancel", stopPresenterResize);
+}
+
+function onPresenterSplitterKeyDown(event) {
+  if (state.audience || window.innerWidth <= 980) {
+    return;
+  }
+
+  if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
+    return;
+  }
+
+  event.preventDefault();
+  const direction = event.key === "ArrowLeft" ? -1 : 1;
+  state.presenterSidebarWidth = clamp(state.presenterSidebarWidth + direction * 24, 280, 720);
+  applyModeLayout();
+}
+
 function setTimerDuration() {
   const currentMinutes = Math.round(state.duration / 60000);
   const answer = window.prompt("Presentation duration (minutes)", String(currentMinutes));
@@ -866,7 +936,24 @@ function openAudienceWindow() {
   const url = new URL(window.location.href);
   url.searchParams.set("audience", "1");
   url.searchParams.set("session", state.sessionId);
-  state.audienceWindow = window.open(url.toString(), "pdf-webslides-audience");
+  const width = Math.max(960, Math.round(window.screen.availWidth * 0.7));
+  const height = Math.max(540, Math.round(window.screen.availHeight * 0.7));
+  const left = Math.max(0, Math.round((window.screen.availWidth - width) / 2));
+  const top = Math.max(0, Math.round((window.screen.availHeight - height) / 2));
+  const features = [
+    "popup=yes",
+    `width=${width}`,
+    `height=${height}`,
+    `left=${left}`,
+    `top=${top}`,
+    "menubar=no",
+    "toolbar=no",
+    "location=no",
+    "status=no",
+    "resizable=yes",
+    "scrollbars=no",
+  ].join(",");
+  state.audienceWindow = window.open(url.toString(), "pdf-webslides-audience", features);
 }
 
 function replaceUrlSession(sessionId, audience) {

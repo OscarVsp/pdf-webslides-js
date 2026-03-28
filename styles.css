@@ -20,7 +20,9 @@
 html,
 body {
   margin: 0;
+  height: 100%;
   min-height: 100%;
+  overflow: hidden;
   background:
     radial-gradient(circle at top right, rgba(242, 184, 75, 0.14), transparent 28%),
     radial-gradient(circle at bottom left, rgba(72, 147, 212, 0.14), transparent 32%),
@@ -31,7 +33,7 @@ body {
 
 body.audience-mode {
   overflow: hidden;
-  background: #fff;
+  background: #000;
 }
 
 body.audience-mode .app,
@@ -57,7 +59,9 @@ select {
 }
 
 .app {
-  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100vh;
 }
 
 .topbar {
@@ -152,6 +156,8 @@ button.active {
 
 .main-view {
   position: relative;
+  min-height: 0;
+  overflow: hidden;
   padding: 1.25rem;
 }
 
@@ -211,7 +217,8 @@ button.active {
 .empty-state {
   display: grid;
   place-items: center;
-  min-height: calc(100vh - 7rem);
+  height: 100%;
+  overflow: auto;
 }
 
 .empty-card {
@@ -276,22 +283,51 @@ kbd {
 }
 
 .presenter-view {
+  --sidebar-width: 360px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-columns: minmax(0, 1fr) 12px minmax(280px, var(--sidebar-width));
   gap: 1rem;
-  min-height: calc(100vh - 7rem);
+  height: 100%;
+  min-height: 0;
 }
 
 .stage-panel,
 .sidebar,
 .overview-view {
   min-width: 0;
+  min-height: 0;
 }
 
 .sidebar {
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
   gap: 1rem;
+}
+
+.presenter-splitter {
+  position: relative;
+  cursor: col-resize;
+  touch-action: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  transition: background 120ms ease;
+}
+
+.presenter-splitter::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 4px;
+  height: min(100%, 120px);
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(242, 184, 75, 0.7), rgba(255, 124, 67, 0.7));
+}
+
+.presenter-splitter:hover,
+.presenter-splitter:focus-visible,
+body.resizing-split .presenter-splitter {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .meta-bar,
@@ -334,7 +370,8 @@ kbd {
 }
 
 .current-stage {
-  min-height: calc(100vh - 7rem);
+  height: 100%;
+  min-height: 0;
   padding: 1rem;
 }
 
@@ -347,7 +384,7 @@ kbd {
 .audience-stage {
   width: 100vw;
   height: 100vh;
-  background: #fff;
+  background: #000;
   border: 0;
   border-radius: 0;
   box-shadow: none;
@@ -362,14 +399,14 @@ kbd {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  background: transparent;
+  background: #000;
 }
 
 .slide-stage img {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  background: #fff;
+  background: #000;
 }
 
 .video-layer {
@@ -417,7 +454,10 @@ kbd {
 }
 
 .overview-view {
+  height: 100%;
+  min-height: 0;
   padding: 1rem;
+  overflow: auto;
 }
 
 .overview-header {
@@ -478,9 +518,16 @@ kbd {
 @media (max-width: 980px) {
   .presenter-view {
     grid-template-columns: 1fr;
+    height: auto;
+    overflow: auto;
+  }
+
+  .presenter-splitter {
+    display: none;
   }
 
   .current-stage {
+    height: auto;
     min-height: auto;
     aspect-ratio: 16 / 9;
   }
