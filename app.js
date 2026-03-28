@@ -14,6 +14,7 @@ const VIEWER_CHANNEL_PREFIX = "pdf-webslides:";
 const VIDEO_EXTENSIONS = [".mp4", ".webm", ".ogg", ".mov", ".m4v"];
 const RENDER_WIDTH = 1920;
 const RENDER_HEIGHT = 1080;
+const APP_VERSION = "1.0";
 const SLIDE_CACHE_VERSION = 1;
 const NOTE_ANNOTATION_SUBTYPES = new Set([
   "Text",
@@ -36,6 +37,7 @@ const state = {
   presenter: true,
   audience: false,
   overview: false,
+  help: false,
   pointer: false,
   pointerPos: { x: 0.5, y: 0.5 },
   freeze: false,
@@ -57,6 +59,7 @@ const state = {
 const els = {
   body: document.body,
   topbar: document.getElementById("topbar"),
+  versionBadge: document.getElementById("version-badge"),
   presenterToolbar: document.getElementById("presenter-toolbar"),
   presenterActions: document.getElementById("presenter-actions"),
   emptyState: document.getElementById("empty-state"),
@@ -79,7 +82,11 @@ const els = {
   pdfInputHero: document.getElementById("pdf-input-hero"),
   openAudienceBtn: document.getElementById("open-audience-btn"),
   overviewBtn: document.getElementById("overview-btn"),
+  helpBtn: document.getElementById("help-btn"),
   closeOverviewBtn: document.getElementById("close-overview-btn"),
+  helpView: document.getElementById("help-view"),
+  helpVersion: document.getElementById("help-version"),
+  closeHelpBtn: document.getElementById("close-help-btn"),
   blackoutBtn: document.getElementById("blackout-btn"),
   freezeBtn: document.getElementById("freeze-btn"),
   pointerBtn: document.getElementById("pointer-btn"),
@@ -101,6 +108,8 @@ init().catch((error) => {
 async function init() {
   state.audience = new URL(window.location.href).searchParams.get("audience") === "1";
   state.presenter = !state.audience;
+  els.versionBadge.textContent = `v${APP_VERSION}`;
+  els.helpVersion.textContent = `v${APP_VERSION}`;
   applyModeLayout();
   bindEvents();
   await restoreSessionFromUrl();
@@ -113,7 +122,9 @@ function bindEvents() {
   els.pdfInputHero.addEventListener("change", onFilePicked);
   els.openAudienceBtn.addEventListener("click", openAudienceWindow);
   els.overviewBtn.addEventListener("click", showOverview);
+  els.helpBtn.addEventListener("click", showHelp);
   els.closeOverviewBtn.addEventListener("click", hideOverview);
+  els.closeHelpBtn.addEventListener("click", hideHelp);
   els.blackoutBtn.addEventListener("click", () => toggleBlackout());
   els.freezeBtn.addEventListener("click", () => toggleFreeze());
   els.pointerBtn.addEventListener("click", () => togglePointer());
@@ -169,9 +180,10 @@ function applyModeLayout() {
   els.body.classList.toggle("resizing-split", state.resizingSplit);
   els.topbar.classList.toggle("hidden", state.audience);
   els.presenterActions.classList.toggle("hidden", state.audience || !hasSlides);
-  els.emptyState.classList.toggle("hidden", state.audience || hasSlides);
-  els.presenterView.classList.toggle("hidden", state.audience || !hasSlides || state.overview);
+  els.emptyState.classList.toggle("hidden", state.audience || hasSlides || state.help);
+  els.presenterView.classList.toggle("hidden", state.audience || !hasSlides || state.overview || state.help);
   els.overviewView.classList.toggle("hidden", state.audience || !state.overview);
+  els.helpView.classList.toggle("hidden", state.audience || !state.help);
   els.audienceView.classList.toggle("hidden", !state.audience);
   els.presenterView.style.setProperty(
     "--sidebar-width",
@@ -288,6 +300,7 @@ function applyLoadedSlides(slides, name) {
   state.startTime = 0;
   state.timerRunning = false;
   state.overview = false;
+  state.help = false;
   els.notes.style.fontSize = `${state.noteFontSize}%`;
 
   applyModeLayout();
@@ -537,11 +550,13 @@ function updateModeVisibility() {
     els.emptyState.classList.add("hidden");
     els.presenterView.classList.add("hidden");
     els.overviewView.classList.add("hidden");
+    els.helpView.classList.add("hidden");
     els.audienceView.classList.remove("hidden");
   } else {
-    els.emptyState.classList.toggle("hidden", !!state.slides.length);
-    els.presenterView.classList.toggle("hidden", !state.slides.length || state.overview);
+    els.emptyState.classList.toggle("hidden", !!state.slides.length || state.help);
+    els.presenterView.classList.toggle("hidden", !state.slides.length || state.overview || state.help);
     els.overviewView.classList.toggle("hidden", !state.overview);
+    els.helpView.classList.toggle("hidden", !state.help);
     els.audienceView.classList.add("hidden");
   }
 }
@@ -718,11 +733,26 @@ function showOverview() {
     return;
   }
   state.overview = true;
+  state.help = false;
   render();
 }
 
 function hideOverview() {
   state.overview = false;
+  render();
+}
+
+function showHelp() {
+  if (state.audience) {
+    return;
+  }
+  state.help = true;
+  state.overview = false;
+  render();
+}
+
+function hideHelp() {
+  state.help = false;
   render();
 }
 
