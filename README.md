@@ -1,12 +1,14 @@
 # PDF Web Slides - JavaScript
 
-A [pdfpc](https://github.com/pdfpc/pdfpc)-inspired implementation entirely in the browser. Open the website, select a PDF, and it renders the deck locally in the browser with a presenter view and an audience window.
+A [pdfpc](https://github.com/pdfpc/pdfpc)-inspired PDF-presenter implementation entirely in the browser. Open the website, select a PDF, and it renders the deck locally in the browser with a presenter view (including color-coded timer and speaker notes) and an audience window.
 
 No conversion step is required. No backend is required.
 
 ## Usage
 
-Open the index.html from a webserver, and select the PDF to present.
+Open the `index.html` from a webserver, and select the PDF to present.
+
+The `pdf.js` runtime is shipped locally, so the app doesn't need internet access.
 
 ## Features
 

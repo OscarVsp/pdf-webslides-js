@@ -1,7 +1,10 @@
-import * as pdfjsLib from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.3.136/pdf.min.mjs";
+const pdfjsLib = globalThis.pdfjsLib;
 
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.3.136/pdf.worker.min.mjs";
+if (!pdfjsLib) {
+  throw new Error("Local pdf.js bundle did not load.");
+}
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = "vendor/pdf.worker.min.js";
 
 const DB_NAME = "pdf-webslides";
 const STORE_NAME = "sessions";
