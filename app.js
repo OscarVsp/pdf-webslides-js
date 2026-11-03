@@ -133,10 +133,20 @@ async function init() {
   initTheme();
   applyModeLayout();
   bindEvents();
+  registerServiceWorker();
   await restoreSessionFromUrl();
   window.setInterval(updateTimerDisplay, 200);
   window.addEventListener("resize", syncPointerVisuals);
   new ResizeObserver(fitNextSlide).observe(els.sidebar);
+}
+
+function registerServiceWorker() {
+  // Only available on HTTPS or localhost; plain-HTTP hosting simply runs without offline support.
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js").catch((error) => {
+      console.warn("Offline support unavailable:", error);
+    });
+  }
 }
 
 function bindEvents() {

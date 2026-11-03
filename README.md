@@ -18,6 +18,22 @@ docker compose up -d
 
 The app is then served at http://localhost:8080.
 
+### Offline use
+
+When served over HTTPS (or from `localhost`), the app caches itself on the first visit and then works fully offline at the same address. Chromium-based browsers and Safari can also install it as a standalone app. Over plain HTTP the app still works, just without offline support.
+
+### Releasing
+
+Bump the version before deploying a new release:
+
+```sh
+scripts/release.sh 1.1
+```
+
+This sets the version shown in the app and the offline cache version in `sw.js`, which is what makes browsers download the new release. The update takes over once all windows of the app are closed, so a running presentation never switches versions. Files added to the app must also be listed in `ASSETS` in `sw.js`; the script refuses to bump if a listed file is missing.
+
+While developing, the offline cache serves the previous files: bump the version, or enable "Update on reload" / "Bypass for network" in the browser's DevTools (Application > Service workers).
+
 ## Features
 
 - Current slide, next slide, notes, timer, page indicator
