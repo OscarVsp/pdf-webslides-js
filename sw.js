@@ -1,6 +1,6 @@
 // Bumped by scripts/release.sh together with APP_VERSION in app.js. Changing this file is what
 // makes browsers install the new release; it takes over once all windows of the app are closed.
-const CACHE_VERSION = "1.0";
+const CACHE_VERSION = "1.1";
 const CACHE_NAME = `pdf-webslides-${CACHE_VERSION}`;
 
 const ASSETS = [
