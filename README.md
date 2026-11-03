@@ -21,6 +21,8 @@ The `pdf.js` runtime is shipped locally, so the app doesn't need internet access
 - Virtual laser pointer
 - PDF annotation notes
 - URL-based video overlays when the browser can load the referenced video
+- Resizable current slide; the next slide grows with the sidebar as long as the longest notes still fit
+- Manual next slide size (drag the divider below it, double-click to reset), with a warning when notes get cropped
 - Dark mode (follows the system setting until toggled)
 
 ## Keyboard Shortcuts

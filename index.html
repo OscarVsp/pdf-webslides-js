@@ -85,8 +85,8 @@
           tabindex="0"
         ></div>
 
-        <aside class="sidebar">
-          <div class="meta-bar">
+        <aside id="sidebar" class="sidebar">
+          <div id="meta-bar" class="meta-bar">
             <div id="timer" class="timer" title="Click to set duration. Right click to switch format.">00:00:00</div>
             <div id="page-indicator" class="page-indicator">0/0</div>
           </div>
@@ -94,11 +94,25 @@
           <div id="next-stage" class="slide-stage next-stage">
             <img id="next-slide" alt="Next slide">
             <div id="next-video-layer" class="video-layer"></div>
+            <div id="next-warning" class="next-warning" role="status" aria-live="polite"></div>
           </div>
 
-          <section class="notes-panel">
-            <div class="notes-header">
-              <span>Notes</span>
+          <div
+            id="next-splitter"
+            class="next-splitter"
+            role="separator"
+            aria-orientation="horizontal"
+            aria-label="Resize next slide"
+            title="Drag to resize the next slide. Double-click to fit the notes again."
+            tabindex="0"
+          ></div>
+
+          <section id="notes-panel" class="notes-panel">
+            <div id="notes-header" class="notes-header">
+              <span>
+                Notes
+                <span id="notes-warning" class="notes-warning hidden">⚠ cropped</span>
+              </span>
               <span id="status-text" class="status-text">No PDF loaded</span>
             </div>
             <pre id="notes" class="notes"></pre>
@@ -130,6 +144,12 @@
             </p>
 
             <p>Use Open Audience Window to open the synchronized audience display in a separate window.</p>
+            <p>Drag the splitter to resize the current slide.
+            The next slide grows with the sidebar as long as the longest notes of the deck still fit without scrolling.
+            Drag the divider below the next slide to override this size for all slides.
+            A short warning tells how many slides get cropped notes, and those slides mark their notes panel in red.
+            Double-click the divider to return to the automatic size.
+            </p>
           </section>
 
           <section class="help-panel">

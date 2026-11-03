@@ -17,6 +17,10 @@ const RENDER_HEIGHT = 1080;
 const APP_VERSION = "1.0";
 const SLIDE_CACHE_VERSION = 1;
 const THEME_STORAGE_KEY = "pdf-webslides:theme";
+const NEXT_SLIDE_MIN_HEIGHT_RATIO = 0.3;
+const NEXT_SLIDE_MIN_HEIGHT = 80;
+const NO_NOTES_TEXT = "No notes for this slide";
+const NEXT_WARNING_DURATION = 2500;
 const NOTE_ANNOTATION_SUBTYPES = new Set([
   "Text",
   "FreeText",
@@ -49,6 +53,9 @@ const state = {
   startTime: 0,
   noteFontSize: 125,
   presenterSidebarWidth: 360,
+  nextSlideHeight: null,
+  notesMeasure: { key: "", slides: null, heights: [] },
+  nextWarningTimer: 0,
   theme: "light",
   sessionId: null,
   channel: null,
@@ -56,6 +63,7 @@ const state = {
   renderToken: 0,
   syncing: false,
   resizingSplit: false,
+  resizingNext: false,
 };
 
 const els = {
@@ -71,11 +79,19 @@ const els = {
   currentStage: document.getElementById("current-stage"),
   currentSlide: document.getElementById("current-slide"),
   currentVideoLayer: document.getElementById("current-video-layer"),
+  sidebar: document.getElementById("sidebar"),
+  metaBar: document.getElementById("meta-bar"),
+  nextStage: document.getElementById("next-stage"),
+  nextSplitter: document.getElementById("next-splitter"),
+  nextWarning: document.getElementById("next-warning"),
   nextSlide: document.getElementById("next-slide"),
   nextVideoLayer: document.getElementById("next-video-layer"),
   audienceSlide: document.getElementById("audience-slide"),
   audienceVideoLayer: document.getElementById("audience-video-layer"),
   presenterSplitter: document.getElementById("presenter-splitter"),
+  notesPanel: document.getElementById("notes-panel"),
+  notesHeader: document.getElementById("notes-header"),
+  notesWarning: document.getElementById("notes-warning"),
   notes: document.getElementById("notes"),
   timer: document.getElementById("timer"),
   pageIndicator: document.getElementById("page-indicator"),
@@ -119,6 +135,7 @@ async function init() {
   await restoreSessionFromUrl();
   window.setInterval(updateTimerDisplay, 200);
   window.addEventListener("resize", syncPointerVisuals);
+  new ResizeObserver(fitNextSlide).observe(els.sidebar);
 }
 
 function bindEvents() {
@@ -135,6 +152,10 @@ function bindEvents() {
   els.pointerBtn.addEventListener("click", () => togglePointer());
   els.presenterSplitter.addEventListener("pointerdown", startPresenterResize);
   els.presenterSplitter.addEventListener("keydown", onPresenterSplitterKeyDown);
+  els.nextSplitter.addEventListener("pointerdown", startNextResize);
+  els.nextSplitter.addEventListener("keydown", onNextSplitterKeyDown);
+  els.nextSplitter.addEventListener("dblclick", resetNextSlideHeight);
+  els.notes.addEventListener("scroll", updateNotesScrollState, { passive: true });
 
   els.timer.addEventListener("click", setTimerDuration);
   els.timer.addEventListener("contextmenu", (event) => {
@@ -183,6 +204,7 @@ function applyModeLayout() {
   const hasSlides = !!state.slides.length;
   els.body.classList.toggle("audience-mode", state.audience);
   els.body.classList.toggle("resizing-split", state.resizingSplit);
+  els.body.classList.toggle("resizing-next", state.resizingNext);
   els.topbar.classList.toggle("hidden", state.audience);
   els.presenterActions.classList.toggle("hidden", state.audience || !hasSlides);
   els.emptyState.classList.toggle("hidden", state.audience || hasSlides || state.help);
@@ -534,7 +556,7 @@ function render() {
   if (state.presenter && !state.overview) {
     els.currentSlide.src = current.image;
     els.nextSlide.src = nextSlide.image;
-    els.notes.textContent = current.notes || "No notes for this slide";
+    els.notes.textContent = current.notes || NO_NOTES_TEXT;
     els.pageIndicator.textContent = `${state.slide + 1}/${state.lastSlide + 1}`;
     renderVideos(els.currentVideoLayer, current.videos);
     renderVideos(els.nextVideoLayer, nextSlide.videos);
@@ -548,6 +570,180 @@ function render() {
 
   syncPointerVisuals();
   updateTimerDisplay();
+  fitNextSlide();
+}
+
+function fitNextSlide() {
+  const stage = els.nextStage;
+  if (
+    state.audience ||
+    !state.slides.length ||
+    els.presenterView.classList.contains("hidden") ||
+    window.innerWidth <= 980
+  ) {
+    stage.style.maxHeight = "";
+    els.notesWarning.classList.add("hidden");
+    els.notesPanel.classList.remove("cropped");
+    return;
+  }
+
+  const bounds = nextSlideBounds();
+  const override = state.nextSlideHeight !== null;
+  const height = override
+    ? clamp(state.nextSlideHeight, bounds.min, bounds.max)
+    : bounds.auto;
+  stage.style.maxHeight = `${Math.floor(height)}px`;
+
+  const cropped = els.notes.scrollHeight > els.notes.clientHeight + 1;
+  els.nextSplitter.classList.toggle("override", override);
+  els.notesPanel.classList.toggle("cropped", cropped);
+  els.notesWarning.classList.toggle("hidden", !cropped);
+  els.notesWarning.title = override
+    ? "The next slide size was set manually. Double-click the divider to fit the notes again."
+    : "The notes of this slide are longer than the available space. Scroll to read them.";
+  updateNotesScrollState();
+}
+
+function updateNotesScrollState() {
+  const atEnd = els.notes.scrollTop + els.notes.clientHeight >= els.notes.scrollHeight - 1;
+  els.notesPanel.classList.toggle("scrolled-end", atEnd);
+}
+
+function showNextWarning(message) {
+  els.nextWarning.textContent = message;
+  els.nextWarning.classList.add("visible");
+  window.clearTimeout(state.nextWarningTimer);
+  state.nextWarningTimer = window.setTimeout(() => {
+    els.nextWarning.classList.remove("visible");
+  }, NEXT_WARNING_DURATION);
+}
+
+function nextSlideBounds() {
+  const panelStyle = window.getComputedStyle(els.notesPanel);
+  const panelBorder =
+    Number.parseFloat(panelStyle.borderTopWidth) + Number.parseFloat(panelStyle.borderBottomWidth);
+  const rowGap = Number.parseFloat(window.getComputedStyle(els.sidebar).rowGap) || 0;
+  const space =
+    els.sidebar.clientHeight -
+    els.metaBar.offsetHeight -
+    els.nextSplitter.offsetHeight -
+    rowGap * 3 -
+    els.notesHeader.offsetHeight -
+    panelBorder;
+  const min = NEXT_SLIDE_MIN_HEIGHT;
+  const max = Math.max(min, Math.min(space, els.sidebar.clientWidth * 9 / 16));
+  const notesHeights = measureNotesHeights();
+  const auto = Math.max(window.innerHeight * NEXT_SLIDE_MIN_HEIGHT_RATIO, space - Math.max(0, ...notesHeights));
+  return { min, max, auto, space, notesHeights };
+}
+
+function measureNotesHeights() {
+  // Height the notes area needs on each slide so that its notes fit without scrolling.
+  const width = els.notes.clientWidth;
+  const key = `${width}|${state.noteFontSize}`;
+  if (state.notesMeasure.key === key && state.notesMeasure.slides === state.slides) {
+    return state.notesMeasure.heights;
+  }
+
+  const texts = state.slides.map((slide) => slide.notes || NO_NOTES_TEXT);
+  const container = document.createElement("div");
+  container.className = "notes-measure";
+  container.style.width = `${width}px`;
+  const elements = new Map();
+  for (const text of new Set(texts)) {
+    const notes = document.createElement("pre");
+    notes.className = "notes";
+    notes.style.fontSize = `${state.noteFontSize}%`;
+    notes.textContent = text;
+    container.appendChild(notes);
+    elements.set(text, notes);
+  }
+  els.notesPanel.appendChild(container);
+  const heightByText = new Map(Array.from(elements, ([text, notes]) => [text, notes.offsetHeight]));
+  container.remove();
+
+  const heights = texts.map((text) => heightByText.get(text));
+  state.notesMeasure = { key, slides: state.slides, heights };
+  return heights;
+}
+
+function startNextResize(event) {
+  if (state.audience || window.innerWidth <= 980) {
+    return;
+  }
+
+  event.preventDefault();
+  state.resizingNext = true;
+  applyModeLayout();
+  els.nextSplitter.setPointerCapture(event.pointerId);
+  window.addEventListener("pointermove", onNextResizeMove);
+  window.addEventListener("pointerup", stopNextResize);
+  window.addEventListener("pointercancel", stopNextResize);
+}
+
+function onNextResizeMove(event) {
+  if (!state.resizingNext) {
+    return;
+  }
+
+  const top = els.nextStage.getBoundingClientRect().top;
+  setNextSlideHeight(event.clientY - top);
+}
+
+function stopNextResize(event) {
+  if (!state.resizingNext) {
+    return;
+  }
+
+  state.resizingNext = false;
+  applyModeLayout();
+  if (event?.pointerId !== undefined && els.nextSplitter.hasPointerCapture(event.pointerId)) {
+    els.nextSplitter.releasePointerCapture(event.pointerId);
+  }
+  window.removeEventListener("pointermove", onNextResizeMove);
+  window.removeEventListener("pointerup", stopNextResize);
+  window.removeEventListener("pointercancel", stopNextResize);
+}
+
+function onNextSplitterKeyDown(event) {
+  if (state.audience || window.innerWidth <= 980) {
+    return;
+  }
+
+  if (event.key === "Escape") {
+    event.preventDefault();
+    resetNextSlideHeight();
+    return;
+  }
+
+  if (event.key !== "ArrowUp" && event.key !== "ArrowDown") {
+    return;
+  }
+
+  event.preventDefault();
+  const direction = event.key === "ArrowUp" ? -1 : 1;
+  const height = els.nextStage.getBoundingClientRect().height;
+  setNextSlideHeight(height + direction * 24);
+}
+
+function setNextSlideHeight(height) {
+  const bounds = nextSlideBounds();
+  state.nextSlideHeight = Math.round(clamp(height, bounds.min, bounds.max));
+  fitNextSlide();
+
+  if (state.nextSlideHeight <= bounds.auto) {
+    return;
+  }
+  const notesSpace = bounds.space - state.nextSlideHeight;
+  const croppedSlides = bounds.notesHeights.filter((notesHeight) => notesHeight > notesSpace + 1).length;
+  if (croppedSlides) {
+    showNextWarning(`⚠ Notes cropped on ${croppedSlides} slide${croppedSlides === 1 ? "" : "s"}`);
+  }
+}
+
+function resetNextSlideHeight() {
+  state.nextSlideHeight = null;
+  fitNextSlide();
 }
 
 function initTheme() {
@@ -704,10 +900,12 @@ function onKeyDown(event) {
     event.preventDefault();
     state.noteFontSize += 10;
     els.notes.style.fontSize = `${state.noteFontSize}%`;
+    fitNextSlide();
   } else if (event.key === "-") {
     event.preventDefault();
     state.noteFontSize = Math.max(60, state.noteFontSize - 10);
     els.notes.style.fontSize = `${state.noteFontSize}%`;
+    fitNextSlide();
   } else if (event.key.toLowerCase() === "b") {
     event.preventDefault();
     toggleBlackout();

@@ -15,6 +15,7 @@
   --hover-strong: #d0d0d0;
   --hover-muted: #dddddd;
   --overlay: rgba(243, 243, 243, 0.96);
+  --danger-surface: #c50f1f;
   --radius: 0;
   color-scheme: light;
 }
@@ -36,6 +37,7 @@
   --hover-strong: #4a4a4a;
   --hover-muted: #3a3a3a;
   --overlay: rgba(27, 27, 27, 0.96);
+  --danger-surface: #a4262c;
   color-scheme: dark;
 }
 
@@ -332,32 +334,59 @@ kbd {
 
 .sidebar {
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: auto auto 8px minmax(0, 1fr);
   gap: 1rem;
 }
 
-.presenter-splitter {
+.presenter-splitter,
+.next-splitter {
   position: relative;
-  cursor: col-resize;
   touch-action: none;
   background: var(--surface-strong);
   border: 1px solid var(--border);
 }
 
-.presenter-splitter::before {
+.presenter-splitter {
+  cursor: col-resize;
+}
+
+.next-splitter {
+  cursor: row-resize;
+}
+
+.presenter-splitter::before,
+.next-splitter::before {
   content: "";
   position: absolute;
+  background: var(--border-strong);
+}
+
+.presenter-splitter::before {
   top: 0;
   bottom: 0;
   left: 50%;
   width: 2px;
   transform: translateX(-50%);
-  background: var(--border-strong);
+}
+
+.next-splitter::before {
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  transform: translateY(-50%);
+}
+
+.next-splitter.override::before {
+  background: var(--accent);
 }
 
 .presenter-splitter:hover,
 .presenter-splitter:focus-visible,
-body.resizing-split .presenter-splitter {
+body.resizing-split .presenter-splitter,
+.next-splitter:hover,
+.next-splitter:focus-visible,
+body.resizing-next .next-splitter {
   background: var(--hover-strong);
 }
 
@@ -451,6 +480,7 @@ body.resizing-split .presenter-splitter {
 }
 
 .notes-panel {
+  position: relative;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   min-height: 0;
@@ -480,6 +510,62 @@ body.resizing-split .presenter-splitter {
 
 .status-text {
   font-size: 0.88rem;
+}
+
+.notes-warning {
+  margin-left: 0.5rem;
+  color: var(--danger);
+  font-size: 0.88rem;
+  cursor: help;
+}
+
+.notes-panel.cropped {
+  box-shadow: inset 4px 0 0 var(--danger);
+}
+
+.notes-panel.cropped::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  right: 0;
+  bottom: 0;
+  height: 3rem;
+  pointer-events: none;
+  background: linear-gradient(transparent, var(--surface));
+  border-bottom: 2px solid var(--danger);
+  transition: opacity 120ms ease;
+}
+
+.notes-panel.cropped.scrolled-end::after {
+  opacity: 0;
+}
+
+.next-warning {
+  position: absolute;
+  left: 50%;
+  bottom: 0.75rem;
+  z-index: 2;
+  padding: 0.35rem 0.7rem;
+  background: var(--danger-surface);
+  color: #fff;
+  font-size: 0.88rem;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(-50%);
+  transition: opacity 200ms ease;
+}
+
+.next-warning.visible {
+  opacity: 1;
+}
+
+.notes-measure {
+  position: absolute;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .overview-view {
@@ -616,7 +702,8 @@ body.resizing-split .presenter-splitter {
     overflow: auto;
   }
 
-  .presenter-splitter {
+  .presenter-splitter,
+  .next-splitter {
     display: none;
   }
 
