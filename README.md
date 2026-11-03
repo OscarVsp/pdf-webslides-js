@@ -10,6 +10,14 @@ Open the `index.html` from a webserver, and select the PDF to present.
 
 The `pdf.js` runtime is shipped locally, so the app doesn't need internet access.
 
+Alternatively, run it with Docker:
+
+```sh
+docker compose up -d
+```
+
+The app is then served at http://localhost:8080.
+
 ## Features
 
 - Current slide, next slide, notes, timer, page indicator
