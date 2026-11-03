@@ -1,4 +1,4 @@
-FROM nginx:1.27-alpine
+FROM nginx:stable-alpine
 
 COPY index.html styles.css app.js /usr/share/nginx/html/
 COPY vendor/ /usr/share/nginx/html/vendor/

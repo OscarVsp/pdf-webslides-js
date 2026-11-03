@@ -1,5 +1,7 @@
 services:
   pdf-webslides:
-    build: .
+    build:
+      context: .
+      pull: true
     ports:
       - "8080:80"

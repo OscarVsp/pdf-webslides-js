@@ -1,10 +1,8 @@
-const pdfjsLib = globalThis.pdfjsLib;
+import * as pdfjsLib from "./vendor/pdf.min.js";
 
-if (!pdfjsLib) {
-  throw new Error("Local pdf.js bundle did not load.");
-}
+pdfjsLib.GlobalWorkerOptions.workerSrc = "./vendor/pdf.worker.min.js";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = "vendor/pdf.worker.min.js";
+const WASM_URL = "./vendor/wasm/";
 
 const DB_NAME = "pdf-webslides";
 const STORE_NAME = "sessions";
@@ -277,7 +275,7 @@ async function loadPdfFromBytes(arrayBuffer, sessionId, name) {
   state.sessionId = sessionId;
   setupChannel();
 
-  const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+  const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer, wasmUrl: WASM_URL });
   state.pdfDoc = await loadingTask.promise;
   if (renderToken !== state.renderToken) {
     return;
