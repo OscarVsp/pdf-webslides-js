@@ -15,6 +15,7 @@ const RENDER_HEIGHT = 1080;
 const APP_VERSION = "1.0";
 const SLIDE_CACHE_VERSION = 1;
 const THEME_STORAGE_KEY = "pdf-webslides:theme";
+const FULLSCREEN_BUTTON_IDLE = 2000;
 const NEXT_SLIDE_MIN_HEIGHT_RATIO = 0.3;
 const NEXT_SLIDE_MIN_HEIGHT = 80;
 const NO_NOTES_TEXT = "No notes for this slide";
@@ -60,6 +61,7 @@ const state = {
   audienceWindow: null,
   renderToken: 0,
   syncing: false,
+  fullscreenButtonTimer: 0,
   resizingSplit: false,
   resizingNext: false,
 };
@@ -74,6 +76,7 @@ const els = {
   presenterView: document.getElementById("presenter-view"),
   overviewView: document.getElementById("overview-view"),
   audienceView: document.getElementById("audience-view"),
+  fullscreenBtn: document.getElementById("fullscreen-btn"),
   currentStage: document.getElementById("current-stage"),
   currentSlide: document.getElementById("current-slide"),
   currentVideoLayer: document.getElementById("current-video-layer"),
@@ -196,6 +199,13 @@ function bindEvents() {
   }, { passive: false });
 
   els.currentStage.addEventListener("mousemove", onPointerMove);
+
+  els.audienceView.addEventListener("pointermove", showFullscreenButton);
+  els.audienceView.addEventListener("pointerdown", showFullscreenButton);
+  els.fullscreenBtn.addEventListener("click", toggleFullscreen);
+  document.addEventListener("fullscreenchange", () => {
+    els.fullscreenBtn.setAttribute("aria-pressed", String(Boolean(document.fullscreenElement)));
+  });
 }
 
 function applyModeLayout() {
@@ -783,6 +793,28 @@ function saveThemePreference(theme) {
     window.localStorage.setItem(THEME_STORAGE_KEY, theme);
   } catch {
     // Storage may be unavailable (e.g. private mode); the theme still applies for this window.
+  }
+}
+
+function showFullscreenButton() {
+  els.fullscreenBtn.classList.add("visible");
+  window.clearTimeout(state.fullscreenButtonTimer);
+  state.fullscreenButtonTimer = window.setTimeout(() => {
+    if (els.fullscreenBtn.matches(":hover")) {
+      showFullscreenButton();
+    } else {
+      els.fullscreenBtn.classList.remove("visible");
+    }
+  }, FULLSCREEN_BUTTON_IDLE);
+}
+
+function toggleFullscreen() {
+  // Drop focus so a later Space/Enter keypress doesn't toggle fullscreen again.
+  els.fullscreenBtn.blur();
+  if (document.fullscreenElement) {
+    document.exitFullscreen();
+  } else {
+    document.documentElement.requestFullscreen();
   }
 }
 
