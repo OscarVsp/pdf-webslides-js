@@ -16,6 +16,7 @@ const RENDER_WIDTH = 1920;
 const RENDER_HEIGHT = 1080;
 const APP_VERSION = "1.0";
 const SLIDE_CACHE_VERSION = 1;
+const THEME_STORAGE_KEY = "pdf-webslides:theme";
 const NOTE_ANNOTATION_SUBTYPES = new Set([
   "Text",
   "FreeText",
@@ -48,6 +49,7 @@ const state = {
   startTime: 0,
   noteFontSize: 125,
   presenterSidebarWidth: 360,
+  theme: "light",
   sessionId: null,
   channel: null,
   audienceWindow: null,
@@ -83,6 +85,7 @@ const els = {
   openAudienceBtn: document.getElementById("open-audience-btn"),
   overviewBtn: document.getElementById("overview-btn"),
   helpBtn: document.getElementById("help-btn"),
+  themeBtn: document.getElementById("theme-btn"),
   closeOverviewBtn: document.getElementById("close-overview-btn"),
   helpView: document.getElementById("help-view"),
   helpVersion: document.getElementById("help-version"),
@@ -110,6 +113,7 @@ async function init() {
   state.presenter = !state.audience;
   els.versionBadge.textContent = `v${APP_VERSION}`;
   els.helpVersion.textContent = `v${APP_VERSION}`;
+  initTheme();
   applyModeLayout();
   bindEvents();
   await restoreSessionFromUrl();
@@ -123,6 +127,7 @@ function bindEvents() {
   els.openAudienceBtn.addEventListener("click", openAudienceWindow);
   els.overviewBtn.addEventListener("click", showOverview);
   els.helpBtn.addEventListener("click", showHelp);
+  els.themeBtn.addEventListener("click", toggleTheme);
   els.closeOverviewBtn.addEventListener("click", hideOverview);
   els.closeHelpBtn.addEventListener("click", hideHelp);
   els.blackoutBtn.addEventListener("click", () => toggleBlackout());
@@ -543,6 +548,48 @@ function render() {
 
   syncPointerVisuals();
   updateTimerDisplay();
+}
+
+function initTheme() {
+  const media = window.matchMedia("(prefers-color-scheme: dark)");
+  state.theme = loadThemePreference() ?? (media.matches ? "dark" : "light");
+  applyTheme();
+  media.addEventListener("change", (event) => {
+    if (loadThemePreference() === null) {
+      state.theme = event.matches ? "dark" : "light";
+      applyTheme();
+    }
+  });
+}
+
+function toggleTheme() {
+  state.theme = state.theme === "dark" ? "light" : "dark";
+  saveThemePreference(state.theme);
+  applyTheme();
+}
+
+function applyTheme() {
+  const dark = state.theme === "dark";
+  document.documentElement.dataset.theme = state.theme;
+  els.themeBtn.classList.toggle("active", dark);
+  els.themeBtn.setAttribute("aria-pressed", String(dark));
+}
+
+function loadThemePreference() {
+  try {
+    const theme = window.localStorage.getItem(THEME_STORAGE_KEY);
+    return theme === "dark" || theme === "light" ? theme : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveThemePreference(theme) {
+  try {
+    window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+  } catch {
+    // Storage may be unavailable (e.g. private mode); the theme still applies for this window.
+  }
 }
 
 function updateModeVisibility() {

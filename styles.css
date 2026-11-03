@@ -11,7 +11,32 @@
   --ok: #107c10;
   --border: #c8c8c8;
   --border-strong: #9a9a9a;
+  --link: #005a9e;
+  --hover-strong: #d0d0d0;
+  --hover-muted: #dddddd;
+  --overlay: rgba(243, 243, 243, 0.96);
   --radius: 0;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --bg: #1b1b1b;
+  --surface: #262626;
+  --surface-muted: #303030;
+  --surface-strong: #3a3a3a;
+  --text: #f0f0f0;
+  --muted: #a8a8a8;
+  --accent: #0078d4;
+  --accent-strong: #106ebe;
+  --danger: #ff6b6b;
+  --ok: #6ccb5f;
+  --border: #3d3d3d;
+  --border-strong: #5c5c5c;
+  --link: #6cb8f6;
+  --hover-strong: #4a4a4a;
+  --hover-muted: #3a3a3a;
+  --overlay: rgba(27, 27, 27, 0.96);
+  color-scheme: dark;
 }
 
 * {
@@ -179,7 +204,7 @@ button.active {
   display: grid;
   place-items: center;
   padding: 1rem;
-  background: rgba(243, 243, 243, 0.96);
+  background: var(--overlay);
 }
 
 .loading-card {
@@ -333,7 +358,7 @@ kbd {
 .presenter-splitter:hover,
 .presenter-splitter:focus-visible,
 body.resizing-split .presenter-splitter {
-  background: #d0d0d0;
+  background: var(--hover-strong);
 }
 
 .meta-bar,
@@ -515,7 +540,7 @@ body.resizing-split .presenter-splitter {
 }
 
 .help-view a {
-  color: var(--accent-strong);
+  color: var(--link);
   text-decoration: none;
 }
 
@@ -541,7 +566,7 @@ body.resizing-split .presenter-splitter {
 }
 
 .overview-thumb:hover {
-  background: #dddddd;
+  background: var(--hover-muted);
   border-color: var(--border-strong);
 }
 

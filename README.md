@@ -21,6 +21,7 @@ The `pdf.js` runtime is shipped locally, so the app doesn't need internet access
 - Virtual laser pointer
 - PDF annotation notes
 - URL-based video overlays when the browser can load the referenced video
+- Dark mode (follows the system setting until toggled)
 
 ## Keyboard Shortcuts
 
